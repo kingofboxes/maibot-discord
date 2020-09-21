@@ -1,2 +1,2 @@
-# maibot
+# maibot-discord
 Maimai DX+ Discord Bot
