@@ -120,6 +120,35 @@ class System(commands.Cog):
         embed.add_field(name='Time Played:', value=f"{history['time_played']}", inline=False)
         await ctx.message.channel.send(embed=embed)
 
+    # Returns most recently played.
+    @commands.command(help='Searches the database for a result.')
+    async def search(self, ctx):
+        
+        message = ctx.message.content
+        input = message.split(' ', 1)
+        records = self.db["records"]
+
+        if len(input) == 2:
+            pattern = input[1]
+            pattern = re.sub(r"\'", "", pattern)
+            pattern = re.sub(r"\"", "", pattern)
+            r = records.find_one({ "song" : {"$regex": pattern} })
+
+            if not r:
+                await ctx.message.channel.send("Could not find specified title.")
+                return
+            else:
+                embed = discord.Embed(title=r['song'], color=0x2e86c1)
+                embed.add_field(name='Genre:', value=f"{r['genre']}", inline=False)
+                embed.add_field(name='Version:', value=f"{r['version']}", inline=False)
+                embed.add_field(name='Difficulty:', value=f"{r['records']['MASTER']['diff']} ({r['records']['MASTER']['level']})", inline=False)
+                embed.add_field(name='Score:', value=f"{r['records']['MASTER']['score']} ({r['records']['MASTER']['rank']})", inline=False)
+        else:
+            await ctx.message.channel.send("```Usage: !search <title>```")
+            return
+
+        await ctx.message.channel.send(embed=embed)
+
     # Manually shut bot down.
     @commands.command(help='Shuts the bot down')
     @commands.is_owner()
