@@ -19,25 +19,29 @@ def shutdown():
 # Load the required variables from .env file.
 load_dotenv()
 env_token = os.getenv('DISCORD_TOKEN')
-username = os.getenv("DXNET_USR")
-password = os.getenv("DXNET_PWD")
+mdx_username = os.getenv("DXNET_USR")
+mdx_password = os.getenv("DXNET_PWD")
+db_username = os.getenv("MONGO_USR")
+db_password = os.getenv("MONGO_PWD")
+db_hostname = os.getenv("MONGO_HOSTNAME")
+db_port = os.getenv("MONGO_PORT")
 
 # Initialise a MaiDX client.
 mdx = MaiDXClient()
-mdx.login(username, password)
+mdx.login(mdx_username, mdx_password)
 
 # Connect to DB.
-client = pymongo.MongoClient("mongodb://localhost:27017/")
+client = pymongo.MongoClient(f"mongodb://{db_username}:{db_password}@{db_hostname}:{db_port}")
 
 # Create DB if it doesn't exist.
-if f"{username}-maimaiDX" not in client.list_database_names():
+if "maimaiDX" not in client.list_database_names():
     print("Initiating first run sequence...")
 
     # Create the schema and tables.
-    db = client[f"{username}-maimaiDX"]
-    profile = db["profile"]
-    history = db["history"]
-    records = db["records"]
+    db = client["maimaiDX"]
+    profile = db[f"{mdx_username}-profile"]
+    history = db[f"{mdx_username}-history"]
+    records = db[f"{mdx_username}-records"]
 
     # Get player data.
     p = mdx.getPlayerData()
@@ -50,10 +54,10 @@ if f"{username}-maimaiDX" not in client.list_database_names():
     records.insert_many(r)
 
 else:
-    db = client[f"{username}-maimaiDX"]
+    db = client["maimaiDX"]
 
 # Add cogs to the bot.
-bot.add_cog(System(bot, db, mdx))
+bot.add_cog(System(bot, db, mdx, mdx_username))
 
 # Run the bot.
 atexit.register(shutdown)

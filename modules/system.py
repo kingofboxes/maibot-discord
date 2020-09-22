@@ -6,10 +6,11 @@ from time import gmtime, strftime
 # System cog.
 class System(commands.Cog):
 
-    def __init__(self, bot, db, mdx):
+    def __init__(self, bot, db, mdx, usr):
         self.bot = bot
         self.db = db
         self.mdx = mdx
+        self.usr = usr
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -38,7 +39,7 @@ class System(commands.Cog):
 
     # Checks if player state has changed.
     def stateChanged(self, p):
-        cache = self.db["profile"].find_one({ "_id" : p['_id']})
+        cache = self.db[f"{self.usr}-profile"].find_one({ "_id" : p['_id']})
         for key in p:
             if (p[key] != cache[key]):
                  return True
@@ -55,13 +56,13 @@ class System(commands.Cog):
         else:
        
             # Update profile.
-            profile = self.db['profile']
+            profile = self.db[f"{self.usr}-profile"]
             _q = { "_id" : p['_id']}
             _v = { "$set": p }
             profile.update_one(_q, _v)
 
             # Update player records.
-            records = self.db['records']
+            records = self.db[f"{self.usr}-records"]
             r = self.mdx.getPlayerRecord()
 
             for _r in r:
@@ -70,7 +71,7 @@ class System(commands.Cog):
                 records.update_one(_q, _v)
 
             # Update player history.
-            history = self.db['history']
+            history = self.db[f"{self.usr}-history"]
             h = self.mdx.getPlayerHistory()
 
             for _h in h:
@@ -84,7 +85,7 @@ class System(commands.Cog):
     # Returns a profile of the user.
     @commands.command(help='Returns the current user who is logged in.')
     async def user(self, ctx):
-        data = self.db["profile"].find_one()
+        data = self.db[f"{self.usr}-profile"].find_one()
         embed = discord.Embed(title=data['name'], color=0x2e86c1)
         embed.set_thumbnail(url=data['player_logo'])
         embed.add_field(name='Rating:', value=f"{data['rating']}", inline=False)
@@ -100,18 +101,18 @@ class System(commands.Cog):
         input = message.split()
 
         if len(input) == 1:
-            history = self.db["history"].find_one()
+            history = self.db[f"{self.usr}-history"].find_one()
         elif len(input) == 2:
             if re.match('^\d+$', input[1]) is None or int(input[1]) > 50 or int(input[1]) < 1:
                 await ctx.message.channel.send("```Usage: !recent [n] (where 1 <= n <= 50)```")
                 return
             else:
-                history = self.db["history"].find_one({"_id" : int(input[1]) - 1})
+                history = self.db[f"{self.usr}-history"].find_one({"_id" : int(input[1]) - 1})
         else:
             await ctx.message.channel.send("```Usage: !recent [n] (where 1 <= n <= 50)```")
             return
 
-        record = self.db["records"].find({"song" : history['song'], "version" : history['version']})[0]
+        record = self.db[f"{self.usr}-records"].find({"song" : history['song'], "version" : history['version']})[0]
         embed = discord.Embed(title=history['song'], color=0x2e86c1)
         embed.set_thumbnail(url=history['song_icon'])
         embed.add_field(name='Version:', value=f"{history['version']}", inline=False)
@@ -126,7 +127,7 @@ class System(commands.Cog):
         
         message = ctx.message.content
         input = message.split(' ', 1)
-        records = self.db["records"]
+        records = self.db[f"{self.usr}-records"]
 
         if len(input) == 2:
             pattern = input[1]
@@ -155,7 +156,7 @@ class System(commands.Cog):
     async def nap(self, ctx):
 
         # Alert everyone that bot is shutting down.
-        await ctx.message.channel.send("Good night...")
+        await ctx.message.channel.send("I sleep.")
 
         # Closes the bot gracefully.
         await self.bot.logout()
