@@ -2,15 +2,14 @@ import discord, json, pymongo, re
 from datetime import datetime
 from discord.ext import commands
 from time import gmtime, strftime
+from modules.client import *
 
 # System cog.
 class System(commands.Cog):
 
-    def __init__(self, bot, db, mdx, usr):
+    def __init__(self, bot, db):
         self.bot = bot
         self.db = db
-        self.mdx = mdx
-        self.usr = usr
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -37,47 +36,92 @@ class System(commands.Cog):
         if isinstance(error, commands.errors.CheckFailure):
             await ctx.send('You do not have permission to use this command.')
 
+    # Get user from mapping.
+    def getDXNetClient(self, ctx):
+        account = self.db['users'].find_one( { "_id" : ctx.message.author.id } )
+        if account is None:
+            return None
+        else:
+            mdx = MaiDXClient()
+            mdx.login(account['segaID'], account['password'])
+            return mdx
+
     # Checks if player state has changed.
-    def stateChanged(self, p):
-        cache = self.db[f"{self.usr}-profile"].find_one({ "_id" : p['_id']})
+    def stateChanged(self, p, ctx):
+        user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )['segaID']
+        cache = self.db[f"{user}-profile"].find_one({ "_id" : p['_id']})
+
+        if cache is None:
+            return True
+
         for key in p:
             if (p[key] != cache[key]):
                  return True
-        return False
+
+        return True
 
     # Returns a profile of the user.
     @commands.command(help='Updates the current client instance of maibot.')
     async def refresh(self, ctx):
+
         await ctx.message.channel.send("Refreshing data from maimai DX NET, this could take up to a minute...")
 
-        p = self.mdx.getPlayerData()
-        if not self.stateChanged(p):
+        mdx = self.getDXNetClient(ctx)
+        if mdx is None:
+            await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
+            return
+
+        user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )['segaID']
+        print(user)
+
+        p = mdx.getPlayerData()
+        print(p)
+        if not self.stateChanged(p, ctx):
             await ctx.message.channel.send("Game history and records are already up to date.")
         else:
+
+            print("??")
        
             # Update profile.
-            profile = self.db[f"{self.usr}-profile"]
+            profile = self.db[f"{user}-profile"]
             _q = { "_id" : p['_id']}
             _v = { "$set": p }
-            profile.update_one(_q, _v)
+            if profile.find_one(_q):
+                profile.update_one(_q, _v)
+            else:
+                profile.insert_one(_v)
 
-            # Update player records.
-            records = self.db[f"{self.usr}-records"]
-            r = self.mdx.getPlayerRecord()
-
-            for _r in r:
-                _q = { "_id": _r['_id']}
-                _v = { "$set": _r}
-                records.update_one(_q, _v)
+            print("??")
 
             # Update player history.
-            history = self.db[f"{self.usr}-history"]
-            h = self.mdx.getPlayerHistory()
+            history = self.db[f"{user}-history"]
+            h = mdx.getPlayerHistory()
 
             for _h in h:
                 _q = { "_id": _h['_id']}
                 _v = { "$set": _h}
-                history.update_one(_q, _v)
+                if history.find_one(_q):
+                    history.update_one(_q, _v)
+                else:
+                    history.insert_one(_v)
+            
+            print("??")
+
+            # Update player records.
+            records = self.db[f"{user}-records"]
+            r = mdx.getPlayerRecord()
+
+            print("??")
+
+            for _r in r:
+                _q = { "_id": _r['_id']}
+                _v = { "$set": _r}
+                if records.find_one(_q):
+                    records.update_one(_q, _v)
+                else:
+                    records.insert_one(_v)
+
+            print("??")
 
             await ctx.message.channel.send(f"Your game history and records have been updated, {ctx.message.author.mention}!")
             

@@ -8,6 +8,7 @@ from discord.ext import commands, tasks
 # Import the cogs.
 from modules.system import System
 from modules.client import *
+from modules.login import *
 
 # Instantiate a client and run it.
 bot = commands.Bot(command_prefix='!')
@@ -26,12 +27,9 @@ db_password = os.getenv("MONGO_PWD")
 db_hostname = os.getenv("MONGO_HOSTNAME")
 db_port = os.getenv("MONGO_PORT")
 
-# Initialise a MaiDX client.
-mdx = MaiDXClient()
-mdx.login(mdx_username, mdx_password)
-
 # Connect to DB.
-client = pymongo.MongoClient(f"mongodb://{db_username}:{db_password}@{db_hostname}:{db_port}")
+# client = pymongo.MongoClient(f"mongodb://{db_username}:{db_password}@{db_hostname}:{db_port}")
+client = pymongo.MongoClient(f"mongodb://127.0.0.1:27017")
 
 # Create DB if it doesn't exist.
 if "maimaiDX" not in client.list_database_names():
@@ -57,7 +55,8 @@ else:
     db = client["maimaiDX"]
 
 # Add cogs to the bot.
-bot.add_cog(System(bot, db, mdx, mdx_username))
+bot.add_cog(System(bot, db))
+bot.add_cog(Login(bot, db))
 
 # Run the bot.
 atexit.register(shutdown)
