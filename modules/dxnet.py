@@ -47,6 +47,7 @@ class DXNet(commands.Cog):
             return
         elif user['password'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
         else:
             mdx = self.getDXNetClient(ctx)
 
@@ -102,6 +103,7 @@ class DXNet(commands.Cog):
             return
         elif user['password'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
         else:
             data = self.db[f"{user['segaID']}-profile"].find_one()
 
@@ -124,6 +126,7 @@ class DXNet(commands.Cog):
             return
         elif user['password'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
         else:
             pass
         
@@ -154,7 +157,7 @@ class DXNet(commands.Cog):
         embed.add_field(name='Time Played:', value=f"{history['time_played']}", inline=False)
         await ctx.message.channel.send(embed=embed)
 
-    # Returns most recently played.
+    # Returns most recently played song.
     @commands.command(help='Searches the database for a result.')
     async def search(self, ctx):
 
@@ -165,6 +168,7 @@ class DXNet(commands.Cog):
             return
         elif user['password'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
         else:
             records = self.db[f"{user['segaID']}-records"]
         
@@ -194,3 +198,29 @@ class DXNet(commands.Cog):
             return
 
         await ctx.message.channel.send(embed=embed)
+
+    # Returns most recently played.
+    @commands.command(help='Gives you overall accuracy from 50 games.')
+    async def accuracy(self, ctx):
+
+        # Get data about user.
+        user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
+        if user['segaID'] is None:
+            await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
+            return
+        elif user['password'] is None:
+            await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
+        else:
+            history = self.db[f"{user['segaID']}-history"]
+        
+        fast = 0
+        late = 0
+
+        records = history.find()
+        for _r in records:
+            fast += _r['fast']
+            late += _r['late']
+
+        await ctx.message.channel.send(f"From your last 50 songs, you hit a total of {fast+late} notes inaccurately.\
+        \n{round(fast/(fast+late), 4) * 100}% of the inaccurate notes were FAST and {round(late/(fast+late), 4) * 100}% were LATE.")
