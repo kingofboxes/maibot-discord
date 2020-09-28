@@ -224,6 +224,8 @@ class DXNet(commands.Cog):
                 diff = "MASTER"
             elif re.search(' -e ', message):
                 diff = "EXPERT"
+            elif re.search(' -r ', message):
+                diff = "REMASTER"
             else:
                 await ctx.message.channel.send("```Usage: !search [-e|m] <title>```")
                 return
