@@ -9,11 +9,6 @@ class DXNet(commands.Cog):
         self.bot = bot
         self.db = db
 
-    def dumpCookies(self, cookies):
-        cookie_attrs = ["version", "name", "value", "port", "domain", "path", "secure", "expires", "discard", "comment", "comment_url", "rfc2109"]
-        cookiedata = json.dumps([{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in cookies])
-        return cookiedata
-
     # Get an instance of DX Net client.
     def getDXNetClient(self, ctx):
         account = self.db['users'].find_one( { "_id" : ctx.message.author.id } )
@@ -23,8 +18,6 @@ class DXNet(commands.Cog):
             jar = requests.cookies.RequestsCookieJar()
             for entry in json.loads(account['cookie']):
                 jar.set(**entry)
-            print("Self Made Jar")
-            print(jar)
             mdx = MaiDXClient(jar)
             return mdx
 
@@ -42,6 +35,15 @@ class DXNet(commands.Cog):
 
         return False
 
+    # Updates the user cookies stored in MongoDB for future requests.
+    def updateUserCookies(self, ctx, mdx):
+        cookie_attrs = ["version", "name", "value", "port", "domain", "path", "secure", "expires", "discard", "comment", "comment_url", "rfc2109"]
+        cookies = json.dumps([{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in mdx.getSessionCookies()])
+        if len(cookies) == 1482:
+            query = { "_id" : ctx.message.author.id }
+            newValues = { "$set" : { "cookie" :  cookies} }
+            self.db["users"].update_one(query, newValues)
+
     # Returns a profile of the user.
     @commands.command(help='Updates the current client instance of maibot.')
     async def refresh(self, ctx):
@@ -51,7 +53,7 @@ class DXNet(commands.Cog):
 
         # Get DX Net Client.
         user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
-        if user['segaID'] is None:
+        if user is None or user['segaID'] is None:
             await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
             return
         elif user['cookie'] is None:
@@ -62,17 +64,9 @@ class DXNet(commands.Cog):
 
         p = mdx.getPlayerData()
         if not self.stateChanged(p, ctx):
-
-            cookies = self.dumpCookies(mdx.getSessionCookies())
-            print("updating cookies with this")
-            print(cookies)
-            print(len(cookies))
-            if len(cookies) == 1482:
-                query = { "_id" : ctx.message.author.id }
-                newValues = { "$set" : { "cookie" :  cookies} }
-                self.db["users"].update_one(query, newValues)
-
+            self.updateUserCookies(ctx, mdx)
             await ctx.message.channel.send("Game history and records are already up to date.")
+
         else:
 
             # Update profile.
@@ -107,7 +101,8 @@ class DXNet(commands.Cog):
                     records.update_one(_q, _v)
                 else:
                     records.insert_one(_r)
-            
+
+            self.updateUserCookies(ctx, mdx)
             await ctx.message.channel.send(f"Your game history and records have been updated, {ctx.message.author.mention}!")
             
 
@@ -117,10 +112,11 @@ class DXNet(commands.Cog):
 
         # Get data about user.
         user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
-        if user['segaID'] is None:
+
+        if user is None or user['segaID'] is None:
             await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
             return
-        elif user['password'] is None:
+        elif user['cookie'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:
@@ -140,10 +136,10 @@ class DXNet(commands.Cog):
 
         # Get data about user.
         user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
-        if user['segaID'] is None:
+        if user is None or user['segaID'] is None:
             await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
             return
-        elif user['password'] is None:
+        elif user['cookie'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:
@@ -182,10 +178,10 @@ class DXNet(commands.Cog):
 
         # Get data about user.
         user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
-        if user['segaID'] is None:
+        if user is None or user['segaID'] is None:
             await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
             return
-        elif user['password'] is None:
+        elif user['cookie'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:
@@ -224,10 +220,10 @@ class DXNet(commands.Cog):
 
         # Get data about user.
         user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
-        if user['segaID'] is None:
+        if user is None or user['segaID'] is None:
             await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
             return
-        elif user['password'] is None:
+        elif user['cookie'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:

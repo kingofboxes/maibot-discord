@@ -21,9 +21,6 @@ class MaiDXClient:
         self.__loggedin = False
         self.__jar = jar
 
-    def getCookies(self):
-        return self.__jar
-
     def getSessionCookies(self):
         return self.__session.cookies
 
@@ -69,20 +66,15 @@ class MaiDXClient:
             "redirect_url": "https://maimaidx-eng.com/maimai-mobile/",
             "back_url": "https://maimai.sega.com/"
         }
-        # OpenID login page GET should redirect to maimaidx-eng
-        print("relogin")
-        print(self.__jar)
-        print("\n")
-        print(self.__session.cookies)
-        print("\n")
-        print("update")
+        
+        # Update client's jar if session cookies gets updated.
         if len(self.__session.cookies.items()) == 5:
-            print("updating jars")
             self.__jar = self.__session.cookies
 
+        # For when a jar is given to the bot upon instantiation.
         self.__session.cookies.update(self.__jar)
-        print(self.__session.cookies)
-        print("\n")
+
+        # OpenID login page GET should redirect to maimaidx-eng
         openid_resp = self.__session.get(OPENID_URL, params=openid_params)
         if openid_resp.status_code == 302:
             redir = openid_resp.headers['Location']
@@ -92,10 +84,6 @@ class MaiDXClient:
                 self.__loggedin = True
 
     def _validateGet(self, url):
-
-        print("validate get")
-        print(self.__jar)
-        print("\n")
 
         # Ensure we're logged in
         if not self.__jar and self.__loggedin:
@@ -108,9 +96,6 @@ class MaiDXClient:
         
         # Force a relogin if session expired.
         if (_e and _e.getText().find('ERROR') >= 0):
-            print("validate get error")
-            print(self.__jar)
-            print("\n")
             self.relogin()
             resp = self.__session.get(url)
             _s = BeautifulSoup(resp.text, features='lxml')
@@ -135,9 +120,6 @@ class MaiDXClient:
         _s = self._validateGet("https://maimaidx-eng.com/maimai-mobile/playerData/")
         _d = self._validateGet("https://maimaidx-eng.com/maimai-mobile/record/")
         _f = self._validateGet("https://maimaidx-eng.com/maimai-mobile/friend/userFriendCode/")
-
-        print("FINAL COOKIES")
-        print(self.__session.cookies)
         
         return {
             "_id": _f.select_one('div.m_b_10.p_5.t_c.f_15').get_text(),

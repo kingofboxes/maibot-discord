@@ -36,7 +36,11 @@ class Login(commands.Cog):
             await ctx.message.channel.send(f"Mapping {ctx.message.author.mention} to SEGA ID '{input[1]}'.")
             await ctx.message.author.send(f"Please enter your password using the !password command (i.e. !password <password>, without the <>).")
         else:
-            await ctx.message.channel.send(f"Error: {ctx.message.author.mention} already mapped to SEGA ID '{input[1]}'.")
+            query = { "_id" : ctx.message.author.id }
+            newValues = { "$set" : { "segaID" : input[1] } }
+            users.update_one(query, newValues)
+            await ctx.message.channel.send(f"{ctx.message.author.mention} is now mapped to SEGA ID '{input[1]}'.")
+            
 
     # Logs user into account.
     @commands.command(help='Logs into the account.')
@@ -57,15 +61,14 @@ class Login(commands.Cog):
             await ctx.message.channel.send("```Usage: !password <password> (without the <>)```")
             return
 
+        # Log in to the client (this is the only place where password is used, but never stored)
         mdx = MaiDXClient()
         mdx.login(account['segaID'], input[1])
         
-        c = mdx.getCookies()
+        # Dump session cookies in MongoDB.
+        c = mdx.getSessionCookies()
         cookie_attrs = ["version", "name", "value", "port", "domain", "path", "secure", "expires", "discard", "comment", "comment_url", "rfc2109"]
         cookiedata = json.dumps([{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in c])
-        print(cookiedata)
-
-        # Update MongoDB.
         query = { "_id" : ctx.message.author.id }
         newValues = { "$set" : { "cookie" : cookiedata } }
     
