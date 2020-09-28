@@ -16,7 +16,7 @@ class System(commands.Cog):
         print(f'[{datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}] Logged in as {self.bot.user}!')
 
         # Fluff.
-        custom_activity = discord.Game(name="Discord")
+        custom_activity = discord.Game(name="maimai DX+")
         await self.bot.change_presence(status=discord.Status.do_not_disturb, activity=custom_activity)
 
     @commands.Cog.listener()

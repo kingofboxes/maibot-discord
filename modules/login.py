@@ -2,7 +2,7 @@ import discord, requests, json
 from modules.client import *
 from discord.ext import commands
 
-# System cog.
+# Login module for maibot DX+.
 class Login(commands.Cog):
 
     def __init__(self, bot, db):

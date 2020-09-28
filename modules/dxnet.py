@@ -2,7 +2,7 @@ import discord, re, requests, json
 from modules.client import *
 from discord.ext import commands
 
-# System cog.
+# DXNet cog for maibot DX+.
 class DXNet(commands.Cog):
 
     def __init__(self, bot, db):
