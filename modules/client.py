@@ -24,6 +24,9 @@ class MaiDXClient:
     def getCookies(self):
         return self.__jar
 
+    def getSessionCookies(self):
+        return self.__session.cookies
+
     """ 
     Login with username and password 
     """
@@ -132,6 +135,9 @@ class MaiDXClient:
         _s = self._validateGet("https://maimaidx-eng.com/maimai-mobile/playerData/")
         _d = self._validateGet("https://maimaidx-eng.com/maimai-mobile/record/")
         _f = self._validateGet("https://maimaidx-eng.com/maimai-mobile/friend/userFriendCode/")
+
+        print("FINAL COOKIES")
+        print(self.__session.cookies)
         
         return {
             "_id": _f.select_one('div.m_b_10.p_5.t_c.f_15').get_text(),

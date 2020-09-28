@@ -30,11 +30,6 @@ class Login(commands.Cog):
         if account is None:
             mapping = { "_id" : ctx.message.author.id, 
                         "segaID" : input[1],
-                        "JSESSIONID" : None,
-                        "clal" : None,
-                        "_t" : None,
-                        "friendCodeList" : None, 
-                        "userId" : None,
                         "cookie" : None,
                     }
             users.insert_one(mapping)
@@ -66,42 +61,15 @@ class Login(commands.Cog):
         mdx.login(account['segaID'], input[1])
         
         c = mdx.getCookies()
-        _j = c.get('JSESSIONID')
-        _c = c.get('clal')
-        _t = c.get('_t')
-        _f = c.get('friendCodeList')
-        _i = c.get('userId')
-
-        cookie_attrs = [
-            "version", "name", "value", "port", "domain", "path", "secure",
-            "expires", "discard", "comment", "comment_url", "rfc2109"
-        ]
+        cookie_attrs = ["version", "name", "value", "port", "domain", "path", "secure", "expires", "discard", "comment", "comment_url", "rfc2109"]
         cookiedata = json.dumps([{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in c])
         print(cookiedata)
 
-        session = requests.session()
-        print(session.cookies)
-        for entry in json.loads(cookiedata):
-            session.cookies.set(**entry)
-        print(session.cookies)
-    
-        print(c)
-
-        dxnet = self.bot.get_cog('DXNet')
-        dxnet.setJar(c)
-
-        update = { "JSESSIONID" : _j,
-                    "clal" : _c,
-                    "_t" : _t,
-                    "friendCodeList" : _f,
-                    "userId" : _i,
-                    "cookie" : cookiedata }
-
         # Update MongoDB.
         query = { "_id" : ctx.message.author.id }
-        newValues = { "$set" : update }
+        newValues = { "$set" : { "cookie" : cookiedata } }
     
-        if account['JSESSIONID'] is None:
+        if account['cookie'] is None:
             await ctx.message.channel.send("Your account has been linked! You now have access to all the features of the bot.")
         else:
             await ctx.message.channel.send("Your password has been updated.")

@@ -8,10 +8,11 @@ class DXNet(commands.Cog):
     def __init__(self, bot, db):
         self.bot = bot
         self.db = db
-        self.jar = None
 
-    def setJar(self, jar):
-        self.jar = jar
+    def dumpCookies(self, cookies):
+        cookie_attrs = ["version", "name", "value", "port", "domain", "path", "secure", "expires", "discard", "comment", "comment_url", "rfc2109"]
+        cookiedata = json.dumps([{attr: getattr(cookie, attr) for attr in cookie_attrs} for cookie in cookies])
+        return cookiedata
 
     # Get an instance of DX Net client.
     def getDXNetClient(self, ctx):
@@ -22,17 +23,8 @@ class DXNet(commands.Cog):
             jar = requests.cookies.RequestsCookieJar()
             for entry in json.loads(account['cookie']):
                 jar.set(**entry)
-            # jar.set(domain = 'lng-tgk-aime-gw.am-all.net/common_auth', path = '', name = 'JSESSIONID', value = account['JSESSIONID'])
-            # jar.set(domain = 'lng-tgk-aime-gw.am-all.net/common_auth', path = '', name = 'clal', value = account['clal'])
-            # jar.set(domain = 'maimaidx-eng.com', path = '/', name = '_t', value = account['_t'])
-            # jar.set(domain = 'maimaidx-eng.com', path = '/', name = 'friendCodeList', value = account['friendCodeList'])
-            # jar.set(domain = 'maimaidx-eng.com', path = '/', name = 'userId', value = account['userId'])
-            print("Given Jar")
-            print(self.jar)
-            print("\n\n")
             print("Self Made Jar")
             print(jar)
-            print("\n\n")
             mdx = MaiDXClient(jar)
             return mdx
 
@@ -62,7 +54,7 @@ class DXNet(commands.Cog):
         if user['segaID'] is None:
             await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
             return
-        elif user['JSESSIONID'] is None:
+        elif user['cookie'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:
@@ -70,7 +62,16 @@ class DXNet(commands.Cog):
 
         p = mdx.getPlayerData()
         if not self.stateChanged(p, ctx):
-            self.setJar(mdx.getCookies())
+
+            cookies = self.dumpCookies(mdx.getSessionCookies())
+            print("updating cookies with this")
+            print(cookies)
+            print(len(cookies))
+            if len(cookies) == 1482:
+                query = { "_id" : ctx.message.author.id }
+                newValues = { "$set" : { "cookie" :  cookies} }
+                self.db["users"].update_one(query, newValues)
+
             await ctx.message.channel.send("Game history and records are already up to date.")
         else:
 
@@ -107,7 +108,6 @@ class DXNet(commands.Cog):
                 else:
                     records.insert_one(_r)
             
-            self.setJar(mdx.getCookies())
             await ctx.message.channel.send(f"Your game history and records have been updated, {ctx.message.author.mention}!")
             
 
