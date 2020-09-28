@@ -1,4 +1,4 @@
-import discord, re
+import discord, re, requests, json
 from modules.client import *
 from discord.ext import commands
 
@@ -8,6 +8,10 @@ class DXNet(commands.Cog):
     def __init__(self, bot, db):
         self.bot = bot
         self.db = db
+        self.jar = None
+
+    def setJar(self, jar):
+        self.jar = jar
 
     # Get an instance of DX Net client.
     def getDXNetClient(self, ctx):
@@ -15,8 +19,21 @@ class DXNet(commands.Cog):
         if account is None:
             return None
         else:
-            mdx = MaiDXClient()
-            mdx.login(account['segaID'], account['password'])
+            jar = requests.cookies.RequestsCookieJar()
+            for entry in json.loads(account['cookie']):
+                jar.set(**entry)
+            # jar.set(domain = 'lng-tgk-aime-gw.am-all.net/common_auth', path = '', name = 'JSESSIONID', value = account['JSESSIONID'])
+            # jar.set(domain = 'lng-tgk-aime-gw.am-all.net/common_auth', path = '', name = 'clal', value = account['clal'])
+            # jar.set(domain = 'maimaidx-eng.com', path = '/', name = '_t', value = account['_t'])
+            # jar.set(domain = 'maimaidx-eng.com', path = '/', name = 'friendCodeList', value = account['friendCodeList'])
+            # jar.set(domain = 'maimaidx-eng.com', path = '/', name = 'userId', value = account['userId'])
+            print("Given Jar")
+            print(self.jar)
+            print("\n\n")
+            print("Self Made Jar")
+            print(jar)
+            print("\n\n")
+            mdx = MaiDXClient(jar)
             return mdx
 
     # Checks if player state has changed.
@@ -45,7 +62,7 @@ class DXNet(commands.Cog):
         if user['segaID'] is None:
             await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
             return
-        elif user['password'] is None:
+        elif user['JSESSIONID'] is None:
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:
@@ -53,6 +70,7 @@ class DXNet(commands.Cog):
 
         p = mdx.getPlayerData()
         if not self.stateChanged(p, ctx):
+            self.setJar(mdx.getCookies())
             await ctx.message.channel.send("Game history and records are already up to date.")
         else:
 
@@ -88,7 +106,8 @@ class DXNet(commands.Cog):
                     records.update_one(_q, _v)
                 else:
                     records.insert_one(_r)
-
+            
+            self.setJar(mdx.getCookies())
             await ctx.message.channel.send(f"Your game history and records have been updated, {ctx.message.author.mention}!")
             
 

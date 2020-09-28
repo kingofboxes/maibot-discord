@@ -16,9 +16,13 @@ class MaiDXException(Exception):
     pass
 
 class MaiDXClient:
-    def __init__(self):
+    def __init__(self, jar=None):
         self.__session = requests.session()
         self.__loggedin = False
+        self.__jar = jar
+
+    def getCookies(self):
+        return self.__jar
 
     """ 
     Login with username and password 
@@ -48,6 +52,7 @@ class MaiDXClient:
                 # Do maimaidx-eng.com login
                 self.__session.get(redir)
                 self.__loggedin = True
+                self.__jar = self.__session.cookies
                 return
         raise MaiDXException("Login failed")
 
@@ -62,6 +67,19 @@ class MaiDXClient:
             "back_url": "https://maimai.sega.com/"
         }
         # OpenID login page GET should redirect to maimaidx-eng
+        print("relogin")
+        print(self.__jar)
+        print("\n")
+        print(self.__session.cookies)
+        print("\n")
+        print("update")
+        if len(self.__session.cookies.items()) == 5:
+            print("updating jars")
+            self.__jar = self.__session.cookies
+
+        self.__session.cookies.update(self.__jar)
+        print(self.__session.cookies)
+        print("\n")
         openid_resp = self.__session.get(OPENID_URL, params=openid_params)
         if openid_resp.status_code == 302:
             redir = openid_resp.headers['Location']
@@ -71,17 +89,25 @@ class MaiDXClient:
                 self.__loggedin = True
 
     def _validateGet(self, url):
+
+        print("validate get")
+        print(self.__jar)
+        print("\n")
+
         # Ensure we're logged in
-        if not self.__loggedin:
+        if not self.__jar and self.__loggedin:
             raise MaiDXException("Not logged in")
 
-        resp = self.__session.get(url)
+        resp = self.__session.get(url, cookies=self.__jar)
         # Test if we get the "error" page, indicates session expiry (login elsewhere)
         _s = BeautifulSoup(resp.text, features='lxml')
         _e = _s.select_one('.main_wrapper > div.container_red.p_10 > div.p_5.f_14')
         
         # Force a relogin if session expired.
         if (_e and _e.getText().find('ERROR') >= 0):
+            print("validate get error")
+            print(self.__jar)
+            print("\n")
             self.relogin()
             resp = self.__session.get(url)
             _s = BeautifulSoup(resp.text, features='lxml')
@@ -122,7 +148,6 @@ class MaiDXClient:
     Each song is contained in: 'div.w_450.m_15.p_r.f_0':
     Genre/categories -> 'screw_block.m_15.f_15'
     Diffculty is obtained via: img.h_20.f_l -> src (regex search to obtain diff).
-
     song: div.t_l.f_13.break (get text)
     diff: see above
     map: img.music_kind_icon -> src (in the case that a deluxe and standard map exists, use backup search of '_btn_on') 
@@ -266,11 +291,3 @@ class MaiDXClient:
         for i, _r in enumerate(_db):
             _r['_id'] = i
         return _db
-
-
-
-
-
-
-
-    

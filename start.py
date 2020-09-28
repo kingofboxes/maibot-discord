@@ -26,7 +26,8 @@ db_hostname = os.getenv("MONGO_HOSTNAME")
 db_port = os.getenv("MONGO_PORT")
 
 # Connect to DB.
-client = pymongo.MongoClient(f"mongodb://{db_username}:{db_password}@{db_hostname}:{db_port}")
+# client = pymongo.MongoClient(f"mongodb://{db_username}:{db_password}@{db_hostname}:{db_port}")
+client = pymongo.MongoClient(f"mongodb://127.0.0.1:27017")
 
 # Create maimaiDX database.
 db = client["maimaiDX"]
