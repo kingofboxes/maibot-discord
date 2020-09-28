@@ -189,30 +189,71 @@ class DXNet(commands.Cog):
         
         # Attempt to get arguments from input.
         message = ctx.message.content
-        input = message.split(' ', 1)
+
+        if re.search(' -\w ', message):
+            input = message.split(' ', 2)
+        else:
+            input = message.split(' ', 1)
         
         # Do error checking on arguments.
         if len(input) == 2:
             pattern = input[1]
             pattern = re.sub(r"\'", "", pattern)
             pattern = re.sub(r"\"", "", pattern)
-            r = records.find_one({ "song" : {"$regex": pattern} })
+            r = records.find({ "song" : {"$regex": pattern} }).limit(3)
 
-            if not r:
+            if r.count() > 1:
+                await ctx.message.channel.send("Found more than 1 song that matches your search query. Returning up to 3 songs...")
+            elif r.count() == 0:
                 await ctx.message.channel.send("Could not find specified title.")
                 return
             else:
-                embed = discord.Embed(title=r['song'], color=0x2e86c1)
-                embed.add_field(name='Genre:', value=f"{r['genre']}", inline=False)
-                embed.add_field(name='Version:', value=f"{r['version']}", inline=False)
-                embed.add_field(name='Difficulty:', value=f"{r['records']['MASTER']['diff']} ({r['records']['MASTER']['level']})", inline=False)
-                embed.add_field(name='Score:', value=f"{r['records']['MASTER']['score']} ({r['records']['MASTER']['rank']})", inline=False)
+                pass
+
+            for record in r:
+                embed = discord.Embed(title=record['song'], color=0x2e86c1)
+                embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)
+                embed.add_field(name='Version:', value=f"{record['version']}", inline=False)
+                embed.add_field(name='Difficulty:', value=f"{record['records']['MASTER']['diff']} ({record['records']['MASTER']['level']})", inline=False)
+                embed.add_field(name='Score:', value=f"{record['records']['MASTER']['score']} ({record['records']['MASTER']['rank']})", inline=False)
+                await ctx.message.channel.send(embed=embed)
+        
+        elif len(input) == 3:
+            
+            if re.search(' -m ', message):
+                diff = "MASTER"
+            elif re.search(' -e ', message):
+                diff = "EXPERT"
+            else:
+                await ctx.message.channel.send("```Usage: !search [-e|m] <title>```")
+                return
+
+            pattern = input[2]
+            pattern = re.sub(r"\'", "", pattern)
+            pattern = re.sub(r"\"", "", pattern)
+            r = records.find({ "song" : {"$regex": pattern} }).limit(3)
+
+            if r.count() > 1:
+                await ctx.message.channel.send("Found more than 1 song that matches your search query. Returning up to 3 songs...")
+            elif r.count() == 0:
+                await ctx.message.channel.send("Could not find specified title.")
+                return
+            else:
+                pass
+
+            for record in r:
+                embed = discord.Embed(title=record['song'], color=0x2e86c1)
+                embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)
+                embed.add_field(name='Version:', value=f"{record['version']}", inline=False)
+                embed.add_field(name='Difficulty:', value=f"{record['records'][diff]['diff']} ({record['records'][diff]['level']})", inline=False)
+                embed.add_field(name='Score:', value=f"{record['records'][diff]['score']} ({record['records'][diff]['rank']})", inline=False)
+                await ctx.message.channel.send(embed=embed)
 
         else:
-            await ctx.message.channel.send("```Usage: !search <title>```")
+            await ctx.message.channel.send("```Usage: !search [-e|m] <title>```")
             return
 
-        await ctx.message.channel.send(embed=embed)
+        
 
     # Returns most recently played.
     @commands.command(help='Gives you overall accuracy from 50 games.')
