@@ -1,4 +1,4 @@
-import requests, re
+import requests, re, urllib.parse
 from pprint import pprint
 from bs4 import BeautifulSoup
 
@@ -199,9 +199,7 @@ class MaiDXClient:
                         rank = re.search('icon_(.*)\.png', rank_div[2]['src']).group(1)
                         rank = rank[:-1].upper() + '+' if rank[-1] == 'p' else rank[:].upper()
                         score = score.get_text()
-                        print("???")
-                        value = int(score[:-1])
-                        print("???")
+                        value = float(score[:-1])
                     else:
                         score = None
                         rank = None
@@ -233,7 +231,8 @@ class MaiDXClient:
                         record['records'][diff] = {
                             "level": tag.select_one('div.f_r.t_c.f_14').get_text(),
                             "rank" : rank,
-                            "score": score
+                            "score": score,
+                            "value" : value
                         }
                 
                 if record and firstPass:
@@ -295,16 +294,18 @@ class MaiDXClient:
         for r in _r:
 
             idx = r.select_one('input')
-            url = f"https://maimaidx-eng.com/maimai-mobile/record/musicDetail/?idx={idx['value']}"
-            _img = self._validateGet(url)
-            _imgurl = _img.select_one('img.w_180.m_5.f_l')
+            suffix = urllib.parse.quote(f"{idx['value']}", safe='')
+            _s = self._validateGet(f"https://maimaidx-eng.com/maimai-mobile/record/musicDetail/?idx={suffix}")
 
-            if _imgurl:
-                record = {'_id': _id,
-                          'url' : _img.select_one('img.w_180.m_5.f_l')['src'] }
-                _id += 1
-                print(str(_id))
-                _db.append(record)
+            print(_id)
+            
+            record = {  '_id': _id,
+                        'song' : _s.select_one('div.m_5.f_15.break').get_text(),
+                        'genre' : _s.select_one('div.m_10.m_t_5.t_r.f_12.blue').get_text(),
+                        'url' : _s.select_one('img.w_180.m_5.f_l')['src'] }
+            
+            _id += 1
+            _db.append(record)
 
         return _db
                 

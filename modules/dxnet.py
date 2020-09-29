@@ -44,8 +44,10 @@ class DXNet(commands.Cog):
             newValues = { "$set" : { "cookie" :  cookies} }
             self.db["users"].update_one(query, newValues)
 
-    # Returns a profile of the user.
-    @commands.command(help='Updates the current client instance of maibot.')
+    # Scrapes a list of album art covers.
+    # Heavily hammers the site and bot.
+    @commands.command(help='Scrapes a list of album art covers.')
+    @commands.is_owner()
     async def images(self, ctx):
 
         # Get DX Net Client.
@@ -60,9 +62,18 @@ class DXNet(commands.Cog):
             mdx = self.getDXNetClient(ctx)
 
         i = mdx.getImageURLs()
+
+        images = self.db["images"]
+        for _i in i:
+            _q = { "_id" : _i['_id']}
+            _v = { "$set": _i }
+            if images.find_one(_q):
+                images.update_one(_q, _v)
+            else:
+                images.insert_one(_i)
         
         # Alert user that process is starting.
-        await ctx.message.channel.send("Test")
+        await ctx.message.channel.send("Images successfully ripped.")
 
     # Returns a profile of the user.
     @commands.command(help='Updates the current client instance of maibot.')
@@ -215,12 +226,17 @@ class DXNet(commands.Cog):
         else:
             input = message.split(' ', 1)
         
-        # Do error checking on arguments.
+        # Default behaviour is searching for master songs.
+        # Sort by score, descending value.
         if len(input) == 2:
             pattern = input[1]
             pattern = re.sub(r"\'", "", pattern)
             pattern = re.sub(r"\"", "", pattern)
-            r = records.find({ "song" : {"$regex": pattern}, "records.MASTER.score" : {"$ne": None}}).sort('records.MASTER.score', -1).limit(3)
+            r = records.find({ "song" : {"$regex": pattern}, "records.MASTER.value" : {"$ne": None}}).sort('records.MASTER.value', -1).limit(3)
+
+            # Backup search in case song has not been played.
+            if r.count() == 0:
+                r = records.find({ "song" : {"$regex": pattern}}).sort(f'records.MASTER.value', -1).limit(3)
 
             if r.count() > 1:
                 await ctx.message.channel.send("Found more than 1 song that matches your search query. Returning up to 3 songs...")
@@ -238,6 +254,8 @@ class DXNet(commands.Cog):
                 embed.add_field(name='Score:', value=f"{record['records']['MASTER']['score']} ({record['records']['MASTER']['rank']})", inline=False)
                 await ctx.message.channel.send(embed=embed)
         
+        # Flags can be given.
+        # Sort by score, descending value.
         elif len(input) == 3:
             
             if re.search(' -m ', message):
@@ -253,8 +271,9 @@ class DXNet(commands.Cog):
             pattern = input[2]
             pattern = re.sub(r"\'", "", pattern)
             pattern = re.sub(r"\"", "", pattern)
-            r = records.find({ "song" : {"$regex": pattern}, "records.MASTER.score" : {"$ne": None}}).sort(f'records.{diff}.score', -1).limit(3)
+            r = records.find({ "song" : {"$regex": pattern}, "records.MASTER.value" : {"$ne": None}}).sort(f'records.{diff}.value', -1).limit(3)
 
+            # Backup search in case song has not been played.
             if r.count() == 0:
                 r = records.find({ "song" : {"$regex": pattern}}).sort(f'records.{diff}.score', -1).limit(3)
 
@@ -278,7 +297,7 @@ class DXNet(commands.Cog):
             await ctx.message.channel.send("```Usage: !search [-e|m|r] <title>```")
             return
 
-    # Returns most recently played.
+    # Returns stats regarding accuracy.
     @commands.command(help='Gives you overall accuracy from 50 games.')
     async def accuracy(self, ctx):
 
