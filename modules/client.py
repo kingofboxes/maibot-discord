@@ -199,9 +199,13 @@ class MaiDXClient:
                         rank = re.search('icon_(.*)\.png', rank_div[2]['src']).group(1)
                         rank = rank[:-1].upper() + '+' if rank[-1] == 'p' else rank[:].upper()
                         score = score.get_text()
+                        print("???")
+                        value = int(score[:-1])
+                        print("???")
                     else:
                         score = None
                         rank = None
+                        value = None
                     
                     # Create dictionary on first pass or append the new difficulty information on subsequent passes.
                     if firstPass:
@@ -212,10 +216,10 @@ class MaiDXClient:
                             "version": version,
                             "records": {
                                 diff : {
-                                    "diff": diff,
                                     "level": tag.select_one('div.f_r.t_c.f_14').get_text(),
                                     "rank" : rank,
-                                    "score": score
+                                    "score": score,
+                                    "value" : value
                                 }
                             }
                         }
@@ -227,7 +231,6 @@ class MaiDXClient:
                                 break
                         
                         record['records'][diff] = {
-                            "diff": diff,
                             "level": tag.select_one('div.f_r.t_c.f_14').get_text(),
                             "rank" : rank,
                             "score": score
@@ -279,3 +282,32 @@ class MaiDXClient:
         for i, _r in enumerate(_db):
             _r['_id'] = i
         return _db
+
+    def getImageURLs(self):
+        
+        # Obtain relevant div blocks.
+        _id = 0
+        _db = []
+        _s = self._validateGet(f'https://maimaidx-eng.com/maimai-mobile/record/musicGenre/search/?genre=99&diff=0')
+        _r = _s.select('div.w_450.m_15.p_r.f_0')
+        
+        # _t contains every tag corresponding to song or genre, so loop through it.
+        for r in _r:
+
+            idx = r.select_one('input')
+            url = f"https://maimaidx-eng.com/maimai-mobile/record/musicDetail/?idx={idx['value']}"
+            _img = self._validateGet(url)
+            _imgurl = _img.select_one('img.w_180.m_5.f_l')
+
+            if _imgurl:
+                record = {'_id': _id,
+                          'url' : _img.select_one('img.w_180.m_5.f_l')['src'] }
+                _id += 1
+                print(str(_id))
+                _db.append(record)
+
+        return _db
+                
+                
+                
+            
