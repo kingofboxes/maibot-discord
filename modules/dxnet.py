@@ -2,7 +2,7 @@ import discord, re, requests, json, os
 from modules.client import *
 from discord.ext import commands
 
-# DXNet cog for maibot DX+.
+# DXNet cog for maibot DX+, specifically for database manipulation.
 class DXNet(commands.Cog):
 
     def __init__(self, bot, db):
@@ -93,7 +93,6 @@ class DXNet(commands.Cog):
                 json.dump(db, fp, indent=3, ensure_ascii=False)
             fp.close()
 
-        # Alert user that process is starting.
         await ctx.message.channel.send("Images successfully dumped.")
 
     # Loads album art database.
@@ -101,14 +100,21 @@ class DXNet(commands.Cog):
     @commands.is_owner()
     async def load(self, ctx):
 
-        images = self.db["images"].find()
+        images = self.db["images"]
 
         with open('data/images.json', 'r') as fp:
-            db = json.load(images, fp, indent=3, ensure_ascii=False)
-            print(db)
+            db = json.load(fp)
             fp.close()
 
-        # Alert user that process is starting.
+        for _s in db:
+            _q = { "_id" : _s['_id']}
+            _v = { "$set": _s }
+            if images.find_one(_q):
+                images.update_one(_q, _v)
+            else:
+                images.insert_one(_s)
+
+        # Alert user that process is done.
         await ctx.message.channel.send("Image database successfully loaded.")
 
     # Returns a profile of the user.
