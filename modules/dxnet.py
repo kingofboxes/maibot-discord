@@ -1,4 +1,4 @@
-import discord, re, requests, json
+import discord, re, requests, json, os
 from modules.client import *
 from discord.ext import commands
 
@@ -87,12 +87,11 @@ class DXNet(commands.Cog):
             return
         else:
             with open('data/images.json', 'w') as fp:
-                fp.write('[')
+                db = []
                 for entry in images:
-                    fp.write(json.dumps(images, fp, indent=3))
-                    fp.write(',')
-                fp.write(']')
-                fp.close()
+                    db.append(entry)
+                json.dump(db, fp, indent=3, ensure_ascii=False)
+            fp.close()
 
         # Alert user that process is starting.
         await ctx.message.channel.send("Images successfully dumped.")
@@ -105,12 +104,12 @@ class DXNet(commands.Cog):
         images = self.db["images"].find()
 
         with open('data/images.json', 'r') as fp:
-            db = json.load(images, fp, indent=3)
+            db = json.load(images, fp, indent=3, ensure_ascii=False)
             print(db)
             fp.close()
 
         # Alert user that process is starting.
-        await ctx.message.channel.send("Images successfully dumped.")
+        await ctx.message.channel.send("Image database successfully loaded.")
 
     # Returns a profile of the user.
     @commands.command(help='Updates the current client instance of maibot.')
