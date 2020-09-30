@@ -262,6 +262,12 @@ class MaiDXClient:
             version = re.search('.*/(.*)\.png', version_div['src']).group(1)
             version = "Deluxe" if 'dx' in version else "Standard"
 
+            # Information regarding records and plays.
+            new_record = _s.select_one('img.playlog_achievement_newrecord')
+            ranking = _s.select_one('img.playlog_matching_icon.f_r')
+            pb = True if new_record else False
+            solo = False if ranking else True
+
             # Return a record as a dictionary.
             record = {
                 'song': _s.select_one('div.m_5.p_5.p_l_10.f_13').get_text(),
@@ -272,6 +278,8 @@ class MaiDXClient:
                 'fast' : int(_s.select('div.p_t_5')[0].get_text()),
                 'late' : int(_s.select('div.p_t_5')[1].get_text()),
                 'time_played': _s.select('span.v_b')[1].get_text(),
+                'pb' : pb,
+                'solo' : solo,
                 'song_icon' : _s.select_one('img.music_img.m_5.m_r_0.f_l')['src']
             }
             _db.append(record)
@@ -290,19 +298,17 @@ class MaiDXClient:
         _s = self._validateGet(f'https://maimaidx-eng.com/maimai-mobile/record/musicGenre/search/?genre=99&diff=0')
         _r = _s.select('div.w_450.m_15.p_r.f_0')
         
-        # _t contains every tag corresponding to song or genre, so loop through it.
+        # _r contains every tag corresponding to song or genre, so loop through it.
         for r in _r:
 
             idx = r.select_one('input')
             suffix = urllib.parse.quote(f"{idx['value']}", safe='')
-            _s = self._validateGet(f"https://maimaidx-eng.com/maimai-mobile/record/musicDetail/?idx={suffix}")
+            _t = self._validateGet(f"https://maimaidx-eng.com/maimai-mobile/record/musicDetail/?idx={suffix}")
 
-            print(_id)
-            
             record = {  '_id': _id,
-                        'song' : _s.select_one('div.m_5.f_15.break').get_text(),
-                        'genre' : _s.select_one('div.m_10.m_t_5.t_r.f_12.blue').get_text(),
-                        'url' : _s.select_one('img.w_180.m_5.f_l')['src'] }
+                        'song' : _t.select_one('div.m_5.f_15.break').get_text(),
+                        'genre' : _t.select_one('div.m_10.m_t_5.t_r.f_12.blue').get_text(),
+                        'url' : _t.select_one('img.w_180.m_5.f_l')['src'] }
             
             _id += 1
             _db.append(record)

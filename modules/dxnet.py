@@ -45,7 +45,7 @@ class DXNet(commands.Cog):
             self.db["users"].update_one(query, newValues)
 
     # Scrapes a list of album art covers.
-    # Heavily hammers the site and bot.
+    # Heavily hammers everything, should only be used when new songs come out.
     @commands.command(help='Scrapes a list of album art covers.')
     @commands.is_owner()
     async def images(self, ctx):
@@ -232,11 +232,11 @@ class DXNet(commands.Cog):
             pattern = input[1]
             pattern = re.sub(r"\'", "", pattern)
             pattern = re.sub(r"\"", "", pattern)
-            r = records.find({ "song" : {"$regex": pattern}, "records.MASTER.value" : {"$ne": None}}).sort('records.MASTER.value', -1).limit(3)
+            r = records.find({ "song" : {"$regex": pattern, "$options" : "i"}, "records.MASTER.value" : {"$ne": None}}).sort('records.MASTER.value', -1).limit(3)
 
             # Backup search in case song has not been played.
             if r.count() == 0:
-                r = records.find({ "song" : {"$regex": pattern}}).sort(f'records.MASTER.value', -1).limit(3)
+                r = records.find({ "song" : {"$regex": pattern, "$options" : "i"}}).sort(f'records.MASTER.value', -1).limit(3)
 
             if r.count() > 1:
                 await ctx.message.channel.send("Found more than 1 song that matches your search query. Returning up to 3 songs...")
@@ -247,7 +247,10 @@ class DXNet(commands.Cog):
                 pass
 
             for record in r:
+
+                image = self.db['images'].find_one( {"_id" : record['_id']} )['url']
                 embed = discord.Embed(title=record['song'], color=0x2e86c1)
+                embed.set_thumbnail(url=image)
                 embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)
                 embed.add_field(name='Version:', value=f"{record['version']}", inline=False)
                 embed.add_field(name='Difficulty:', value=f"MASTER ({record['records']['MASTER']['level']})", inline=False)
@@ -271,11 +274,11 @@ class DXNet(commands.Cog):
             pattern = input[2]
             pattern = re.sub(r"\'", "", pattern)
             pattern = re.sub(r"\"", "", pattern)
-            r = records.find({ "song" : {"$regex": pattern}, "records.MASTER.value" : {"$ne": None}}).sort(f'records.{diff}.value', -1).limit(3)
+            r = records.find({ "song" : {"$regex": pattern, "$options" : "i"}, "records.MASTER.value" : {"$ne": None}}).sort(f'records.{diff}.value', -1).limit(3)
 
             # Backup search in case song has not been played.
             if r.count() == 0:
-                r = records.find({ "song" : {"$regex": pattern}}).sort(f'records.{diff}.score', -1).limit(3)
+                r = records.find({ "song" : {"$regex": pattern, "$options" : "i"}}).sort(f'records.{diff}.score', -1).limit(3)
 
             if r.count() > 1:
                 await ctx.message.channel.send("Found more than 1 song that matches your search query. Returning up to 3 songs...")
@@ -286,7 +289,9 @@ class DXNet(commands.Cog):
                 pass
 
             for record in r:
+                image = self.db['images'].find_one( {"_id" : record['_id']} )['url']
                 embed = discord.Embed(title=record['song'], color=0x2e86c1)
+                embed.set_thumbnail(url=image)
                 embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)
                 embed.add_field(name='Version:', value=f"{record['version']}", inline=False)
                 embed.add_field(name='Difficulty:', value=f"{diff} ({record['records'][diff]['level']})", inline=False)
@@ -322,3 +327,41 @@ class DXNet(commands.Cog):
 
         await ctx.message.channel.send(f"From your last 50 songs, you hit a total of {fast+late} notes inaccurately.\
         \n{round(fast/(fast+late), 4) * 100}% of the inaccurate notes were FAST and {round(late/(fast+late), 4) * 100}% were LATE.")
+
+    # Returns information regarding last session.
+    @commands.command(help='Gives you overall accuracy from 50 games.')
+    async def session(self, ctx):
+
+        # Get data about user.
+        user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
+        if user is None or user['segaID'] is None:
+            await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
+            return
+        elif user['cookie'] is None:
+            await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
+        else:
+            history = self.db[f"{user['segaID']}-history"]
+        
+        pb = 0
+        solo = 0
+        songs = 0
+        last_played = history.find_one()['time_played']
+        date_played = last_played[:-6]
+
+        records = history.find()
+        for _r in records:
+            if date_played in _r['time_played']:
+                if _r['pb']: pb += 1
+                if _r['solo']: solo += 1
+                songs += 1
+
+        solo_games = solo/3
+        duo_games = (songs-solo)/4
+
+        if songs == 50:
+            await ctx.message.channel.send(f"From your last session of maimai DX+ ({date_played}), you played a total of at least {songs} songs.\
+            \nOut of those {songs} songs, you achieved a new record in {pb} of them.")
+        else:
+            await ctx.message.channel.send(f"From your last session of maimai DX+ ({date_played}), you played a total of {songs} songs.\
+            \nOut of those {songs} songs, you achieved a new record in {pb} of them. You played a total of {int(solo_games+duo_games)} games: {int(solo_games)} by yourself and {int(duo_games)} with someone else.")
