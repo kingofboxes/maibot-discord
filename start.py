@@ -9,6 +9,8 @@ from discord.ext import commands, tasks
 from modules.system import System
 from modules.login import Login
 from modules.dxnet import DXNet
+from modules.history import DXNetHistory
+from modules.records import DXNetRecords
 
 # Instantiate a client and run it.
 bot = commands.Bot(command_prefix='!')
@@ -26,8 +28,10 @@ db_hostname = os.getenv("MONGO_HOSTNAME")
 db_port = os.getenv("MONGO_PORT")
 
 # Connect to DB.
-client = pymongo.MongoClient(f"mongodb://{db_username}:{db_password}@{db_hostname}:{db_port}")
-# client = pymongo.MongoClient(f"mongodb://127.0.0.1:27017")
+if db_username:
+    client = pymongo.MongoClient(f"mongodb://{db_username}:{db_password}@{db_hostname}:{db_port}")
+else:
+    client = pymongo.MongoClient(f"mongodb://127.0.0.1:27017")
 
 # Create maimaiDX database.
 db = client["maimaiDX"]
@@ -36,6 +40,8 @@ db = client["maimaiDX"]
 bot.add_cog(System(bot, db))
 bot.add_cog(Login(bot, db))
 bot.add_cog(DXNet(bot, db))
+bot.add_cog(DXNetHistory(bot, db))
+bot.add_cog(DXNetRecords(bot, db))
 
 # Run the bot.
 atexit.register(shutdown)
