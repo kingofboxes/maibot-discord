@@ -125,10 +125,6 @@ class DXNetRecords(commands.Cog):
         # Attempt to get arguments from input.
         message = ctx.message.content
 
-        # if len(input) == 1 or not re.search('{.*}', input):
-        #     await ctx.message.channel.send("```Usage: !query {mongoDB query string}```")
-        #     return
-
         if re.search(' -m ', message):
             diff = "MASTER"
         elif re.search(' -e ', message):
@@ -147,11 +143,8 @@ class DXNetRecords(commands.Cog):
         query = input[2]
 
         # Get records based on query.
-        print(query)
         query = json.loads(query)
-        print(query)
         r = records.find(query).sort(f'records.{diff}.score', -1).limit(3)
-        print(r)
 
         if r.count() > 1:
             await ctx.message.channel.send("Found more than 1 song that matches your query string. Returning up to 3 songs...")
