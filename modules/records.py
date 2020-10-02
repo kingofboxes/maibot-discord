@@ -1,4 +1,4 @@
-import discord, re
+import discord, re, json
 from discord.ext import commands
 
 # DXNet cog for maibot DX+, specifically for records.
@@ -106,3 +106,68 @@ class DXNetRecords(commands.Cog):
         else:
             await ctx.message.channel.send("```Usage: !search [-e|m|r] <title>```")
             return
+
+    # Queries the database.
+    @commands.command(help='Queries the database.')
+    async def query(self, ctx):
+
+        # Get data about user.
+        user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
+        if user is None or user['segaID'] is None:
+            await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
+            return
+        elif user['cookie'] is None:
+            await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
+        else:
+            records = self.db[f"{user['segaID']}-records"]
+        
+        # Attempt to get arguments from input.
+        message = ctx.message.content
+
+        # if len(input) == 1 or not re.search('{.*}', input):
+        #     await ctx.message.channel.send("```Usage: !query {mongoDB query string}```")
+        #     return
+
+        if re.search(' -m ', message):
+            diff = "MASTER"
+        elif re.search(' -e ', message):
+            diff = "EXPERT"
+        elif re.search(' -r ', message):
+            diff = "REMASTER"
+        else:
+            await ctx.message.channel.send("```Usage: !query <-e|-m|-r> <query>```")
+            return
+        
+        # Process query.
+        input = message.split(' ', 2)
+        if len(input) != 3:
+            await ctx.message.channel.send("```Usage: !query <-e|-m|-r> <query>```")
+            return
+        query = input[2]
+
+        # Get records based on query.
+        print(query)
+        query = json.loads(query)
+        print(query)
+        r = records.find(query).sort(f'records.{diff}.score', -1).limit(3)
+        print(r)
+
+        if r.count() > 1:
+            await ctx.message.channel.send("Found more than 1 song that matches your query string. Returning up to 3 songs...")
+        elif r.count() == 0:
+            await ctx.message.channel.send("Could not find any songs with specified query.")
+            return
+        else:
+            pass
+
+        for record in r:
+            image = self.db['images'].find_one( {"_id" : record['_id']} )['url']
+            embed = discord.Embed(title=record['song'], color=0x2e86c1)
+            embed.set_thumbnail(url=image)
+            embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)
+            embed.add_field(name='Version:', value=f"{record['version']}", inline=False)
+            embed.add_field(name='Difficulty:', value=f"{diff} ({record['records'][diff]['level']})", inline=False)
+            embed.add_field(name='Score:', value=f"{record['records'][diff]['score']} ({record['records'][diff]['rank']})", inline=False)
+            await ctx.message.channel.send(embed=embed)
+        
