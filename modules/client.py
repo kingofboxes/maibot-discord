@@ -129,7 +129,8 @@ class MaiDXClient:
             "rating_max": getInt(_s.select_one('div.p_r_5.f_11').get_text()),
             "star_count": getInt(_s.select_one('div.p_l_10.f_l.f_14').get_text()),
             "play_count": getInt(_s.select_one('div.m_5.m_t_10.t_r.f_12').get_text()),
-            "last_played": _d.select('span.v_b')[1].get_text()
+            "last_played": _d.select('span.v_b')[1].get_text(),
+            "playlist" : []
         }
 
     """

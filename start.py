@@ -11,6 +11,7 @@ from modules.login import Login
 from modules.dxnet import DXNet
 from modules.history import DXNetHistory
 from modules.records import DXNetRecords
+from modules.playlist import DXNetPlaylist
 
 # Instantiate a client and run it.
 bot = commands.Bot(command_prefix='!')
@@ -42,6 +43,7 @@ bot.add_cog(Login(bot, db))
 bot.add_cog(DXNet(bot, db))
 bot.add_cog(DXNetHistory(bot, db))
 bot.add_cog(DXNetRecords(bot, db))
+bot.add_cog(DXNetPlaylist(bot, db))
 
 # Run the bot.
 atexit.register(shutdown)
