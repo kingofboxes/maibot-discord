@@ -145,8 +145,10 @@ class DXNet(commands.Cog):
             # Update profile.
             profile = self.db[f"{user['segaID']}-profile"]
             _q = { "_id" : p['_id']}
-            _v = { "$set": p }
             if profile.find_one(_q):
+                playlist = profile.find_one(_q)['playlist']
+                p['playlist'] = playlist
+                _v = { "$set": p }
                 profile.update_one(_q, _v)
             else:
                 profile.insert_one(p)

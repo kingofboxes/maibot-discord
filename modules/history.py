@@ -111,7 +111,7 @@ class DXNetHistory(commands.Cog):
             late += _r['late']
 
         await ctx.message.channel.send(f"From your last 50 songs, you hit a total of {fast+late} notes inaccurately.\
-        \n{round(fast/(fast+late), 4) * 100}% of the inaccurate notes were FAST and {round(late/(fast+late), 4) * 100}% were LATE.")
+        \n{'{0:.2f}'.format(round(fast/(fast+late), 4) * 100)}% of the inaccurate notes were FAST and {'{0:.2f}'.format(round(late/(fast+late), 4) * 100)}% were LATE.")
 
     # Returns information regarding last session.
     @commands.command(help='Gives you information for the last played session.')
@@ -155,7 +155,7 @@ class DXNetHistory(commands.Cog):
         else:
             await ctx.message.channel.send(f"From your last session of maimai DX+ ({date_played}), you played a total of {songs} songs.\
             \nOut of those {songs} songs, you achieved a new record in {pb} of them. You played a total of {int(solo_games+duo_games)} games: {int(solo_games)} by yourself and {int(duo_games)} with someone else.\
-            \nFrom the songs you played, you hit a total of {fast+late} notes inaccurately. {round(fast/(fast+late), 4) * 100}% of the inaccurate notes were FAST and {round(late/(fast+late), 4) * 100}% were LATE.")
+            \nFrom the songs you played, you hit a total of {fast+late} notes inaccurately. {'{0:.2f}'.format(round(fast/(fast+late), 4) * 100)}% of the inaccurate notes were FAST and {'{0:.2f}'.format(round(late/(fast+late), 4) * 100)}% were LATE.")
 
     # Returns most recently played.
     @commands.command(help='Returns the songs played on the previous session session.')

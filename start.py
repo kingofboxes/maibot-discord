@@ -13,8 +13,12 @@ from modules.history import DXNetHistory
 from modules.records import DXNetRecords
 from modules.playlist import DXNetPlaylist
 
+# Intents update for Discord.py 1.5.1.
+intents = discord.Intents.default()
+intents.members = True
+
 # Instantiate a client and run it.
-bot = commands.Bot(command_prefix='!')
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Clean up function:
 def shutdown():
