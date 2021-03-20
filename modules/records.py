@@ -53,7 +53,7 @@ class DXNetRecords(commands.Cog):
 
             for record in r:
 
-                image = self.db['images'].find_one( {"_id" : record['_id']} )['url']
+                image = self.db['images'].find_one( {"song" : record['song'], "genre": record['genre']})['url']
                 embed = discord.Embed(title=record['song'], color=0x2e86c1)
                 embed.set_thumbnail(url=image)
                 embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)
@@ -94,7 +94,7 @@ class DXNetRecords(commands.Cog):
                 pass
 
             for record in r:
-                image = self.db['images'].find_one( {"_id" : record['_id']} )['url']
+                image = self.db['images'].find_one( {"song" : record['song'], "genre": record['genre']})['url']
                 embed = discord.Embed(title=record['song'], color=0x2e86c1)
                 embed.set_thumbnail(url=image)
                 embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)
@@ -155,7 +155,7 @@ class DXNetRecords(commands.Cog):
             pass
 
         for record in r:
-            image = self.db['images'].find_one( {"_id" : record['_id']} )['url']
+            image = self.db['images'].find_one( {"song" : record['song'], "genre": record['genre']})['url']
             embed = discord.Embed(title=record['song'], color=0x2e86c1)
             embed.set_thumbnail(url=image)
             embed.add_field(name='Genre:', value=f"{record['genre']}", inline=False)

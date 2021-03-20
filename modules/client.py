@@ -1,5 +1,4 @@
 import requests, re, urllib.parse
-from pprint import pprint
 from bs4 import BeautifulSoup
 
 OPENID_URL = "https://lng-tgk-aime-gw.am-all.net/common_auth/login"
@@ -16,6 +15,7 @@ class MaiDXException(Exception):
     pass
 
 class MaiDXClient:
+
     def __init__(self, jar=None):
         self.__session = requests.session()
         self.__loggedin = False
@@ -25,7 +25,7 @@ class MaiDXClient:
         return self.__session.cookies
 
     """ 
-    Login with username and password 
+    Login with username and password.
     """
     def login(self, user, pwd):
         # Initiate session cookie from am-all.net
@@ -57,8 +57,8 @@ class MaiDXClient:
         raise MaiDXException("Login failed")
 
     """ 
-    Login with am-all.net cookie 
-    Requires a prior attempted login
+    Login with am-all.net cookie.
+    Requires a prior attempted login.
     """
     def relogin(self):
         openid_params = {
@@ -83,14 +83,17 @@ class MaiDXClient:
                 self.__session.get(redir)
                 self.__loggedin = True
 
+    """ 
+    Validation check on existing cookie.
+    """
     def _validateGet(self, url):
 
         # Ensure we're logged in
         if not self.__jar and self.__loggedin:
             raise MaiDXException("Not logged in")
 
-        resp = self.__session.get(url, cookies=self.__jar)
         # Test if we get the "error" page, indicates session expiry (login elsewhere)
+        resp = self.__session.get(url, cookies=self.__jar)
         _s = BeautifulSoup(resp.text, features='lxml')
         _e = _s.select_one('.main_wrapper > div.container_red.p_10 > div.p_5.f_14')
         
@@ -102,19 +105,11 @@ class MaiDXClient:
 
         return _s
 
-    """
-    player_logo: img.w_112.f_l -> src
-    trophy: .trophy_block -> class .trophy_{} = trophy type, text = .trophy_block span
-    name: .name_block (get text)
-    rating: .rating_block (get text)
-    rating_max: div.p_r_5.f_11 (get text)
-    star_count: div.p_l_10.f_l.f_14 (get text)
-    play_count: div.m_5.m_t_10.t_r.f_12 (get text)
-    last_played: span.v_b (second index)
-    """
-    """
-    Get player stats data
-    """
+    ######################################
+    ###### DATA SCRAPING FUNCTIONS #######
+    ######################################
+
+    # Gets the player's stats.
     def getPlayerData(self):
 
         _s = self._validateGet("https://maimaidx-eng.com/maimai-mobile/playerData/")
@@ -131,20 +126,7 @@ class MaiDXClient:
             "playlist" : []
         }
 
-    """
-    Each song is contained in: 'div.w_450.m_15.p_r.f_0':
-    Genre/categories -> 'screw_block.m_15.f_15'
-    Diffculty is obtained via: img.h_20.f_l -> src (regex search to obtain diff).
-    song: div.t_l.f_13.break (get text)
-    diff: see above
-    map: img.music_kind_icon -> src (in the case that a deluxe and standard map exists, use backup search of '_btn_on') 
-    level: div.f_r.t_c.f_14 (get text)
-    score: div.w_120.t_r.f_l.f_12 (get text)
-    rank: img.h_30.f_r (also comes with FC/FC+ and AP/AP+, always the 2nd index) -> src (regex search to obtain rank)
-    """
-    """
-    Get entire play record (with scores) and song list from maimai DX NET
-    """
+    # Gets the player record (with scores) and song list from maimai DX NET.
     def getPlayerRecord(self):
         
         # First pass variable to remove redundancy.
@@ -221,6 +203,7 @@ class MaiDXClient:
                             }
                         }
                         _id += 1
+
                     else:
                         for d in _db:
                             if d['song'] == song and d['genre'] == genre and d['version'] == version:
@@ -233,10 +216,10 @@ class MaiDXClient:
                             "score": score,
                             "value" : value
                         }
-                
+
                 if record and firstPass:
                     _db.append(record)
-            
+
             firstPass = False
 
         return _db
@@ -289,6 +272,7 @@ class MaiDXClient:
             _r['_id'] = i
         return _db
 
+    # Builds a database of song images.
     def getImageURLs(self):
         
         # Obtain relevant div blocks.
@@ -299,21 +283,21 @@ class MaiDXClient:
         
         # _r contains every tag corresponding to song or genre, so loop through it.
         for r in _r:
-
             idx = r.select_one('input')
             suffix = urllib.parse.quote(f"{idx['value']}", safe='')
             _t = self._validateGet(f"https://maimaidx-eng.com/maimai-mobile/record/musicDetail/?idx={suffix}")
 
+            # Strip the '\n's and '\t's from the genre.
+            genre = _t.select_one('div.m_10.m_t_5.t_r.f_12.blue').get_text()
+            genre = genre.replace('\n', '')
+            genre = genre.replace('\t', '')
+
             record = {  '_id': _id,
                         'song' : _t.select_one('div.m_5.f_15.break').get_text(),
-                        'genre' : _t.select_one('div.m_10.m_t_5.t_r.f_12.blue').get_text(),
+                        'genre' : genre,
                         'url' : _t.select_one('img.w_180.m_5.f_l')['src'] }
             
             _id += 1
             _db.append(record)
 
         return _db
-                
-                
-                
-            

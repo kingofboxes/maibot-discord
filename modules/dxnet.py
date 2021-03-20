@@ -1,4 +1,4 @@
-import discord, re, requests, json, os
+import requests, json
 from modules.client import *
 from discord.ext import commands
 

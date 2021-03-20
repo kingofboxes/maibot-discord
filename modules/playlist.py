@@ -1,4 +1,4 @@
-import discord, re, time
+import re
 from discord.ext import commands
 
 # DXNet cog for maibot DX+, specifically for user history.
@@ -90,7 +90,6 @@ class DXNetPlaylist(commands.Cog):
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:
-            records = self.db[f"{user['segaID']}-records"]
             profile = self.db[f"{user['segaID']}-profile"]
 
         player = profile.find_one()
@@ -122,7 +121,6 @@ class DXNetPlaylist(commands.Cog):
             await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
             return
         else:
-            records = self.db[f"{user['segaID']}-records"]
             profile = self.db[f"{user['segaID']}-profile"]
 
         message = ctx.message.content
@@ -141,3 +139,22 @@ class DXNetPlaylist(commands.Cog):
         playlist.pop(int(input[1])-1)
         profile.update_one( {'_id' : player['_id'] }, {'$set': {'playlist' : playlist}} )
         await ctx.message.channel.send("Song successfully removed from playlist.")
+
+    # Removes all songs from playlist.
+    @commands.command(help='Remove all songs from playlist.')
+    async def clear(self, ctx):
+
+        # Get data about user.
+        user = self.db['users'].find_one( {"_id" : ctx.message.author.id} )
+        if user is None or user['segaID'] is None:
+            await ctx.message.channel.send("You have not yet mapped your Discord account to a SEGA ID. Please use !map to do.")
+            return
+        elif user['cookie'] is None:
+            await ctx.message.channel.send("You have not yet provided a password. Please use !password to do.")
+            return
+        else:
+            profile = self.db[f"{user['segaID']}-profile"]
+
+        player = profile.find_one()
+        profile.update_one( {'_id' : player['_id'] }, {'$set': {'playlist' : []}} )
+        await ctx.message.channel.send("All songs cleared from playlist.")

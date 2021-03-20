@@ -1,4 +1,4 @@
-import discord, requests, json
+import json
 from modules.client import *
 from discord.ext import commands
 
@@ -23,7 +23,7 @@ class Login(commands.Cog):
 
         # Do error checking on arguments.
         if len(input) != 2:
-            await ctx.message.channel.send("```Usage: !map <username> (without the <>)```")
+            await ctx.message.channel.send("```Usage: !map <username>```")
             return
 
         # Add mapping to MongoDB.
@@ -58,7 +58,7 @@ class Login(commands.Cog):
 
         # Do error checking on arguments.
         if len(input) != 2:
-            await ctx.message.channel.send("```Usage: !password <password> (without the <>)```")
+            await ctx.message.channel.send("```Usage: !password <password>```")
             return
 
         # Log in to the client (this is the only place where password is used, but never stored)
